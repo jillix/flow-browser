@@ -1,0 +1,29 @@
+{
+  "name": "flow-pack",
+  "version": "0.0.1",
+  "description": "Bundle npm modules of a flow app.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jillix/flow-pack.git"
+  },
+  "keywords": [
+    "flow",
+    "bundle",
+    "pack"
+  ],
+  "author": "Adrian Ottiker <adrian@ottiker.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jillix/flow-pack/issues"
+  },
+  "homepage": "https://github.com/jillix/flow-pack#readme",
+  "dependencies": {
+    "browserify": "^13.0.0",
+    "closurecompiler": "^1.5.2",
+    "yargs": "^3.32.0"
+  }
+}
