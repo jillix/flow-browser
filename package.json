@@ -4,6 +4,9 @@
   "description": "Bundle npm modules of a flow app.",
   "main": "index.js",
   "scripts": {
+    "install": "npm bundle",
+    "bundle": "node index.js",
+    "bundle-dev": "node index.js -d",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
