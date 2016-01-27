@@ -8,13 +8,26 @@
 // TODO what about html/css/text compression on install?
 
 var fs = require('fs');
-var yargs = require('yargs');
 var path = require('path');
 var zlib = require('zlib');
 var browserify = require('browserify');
 var ClosureCompiler = require('closurecompiler');
 
-var base = path.resolve(process.argv[2]);
+var argv = require('yargs').option('d', {
+        alias: 'debug',
+        default: false,
+        type: 'boolean',
+        describe: 'Bundle scripts unminified and with a source map.'
+    })
+    .example('flow-app bundle -d', "Bundle scripts unminified and with a source map.")
+    .help('h')
+    .alias('h', 'help')
+    .strict()
+    .argv;
+
+console.log(argv);
+
+var base = path.resolve(argv._[0] || '../../');
 var base_app_modules = base + '/app_modules';
 var base_node_modules = base + '/node_modules';
 
