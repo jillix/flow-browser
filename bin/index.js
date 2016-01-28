@@ -103,13 +103,10 @@ flowApi.getInstances(base, function (err, bundles) {
             bundle = base_node_modules + '/' + bundle + '/bundle.js';
         }
 
-        console.log('FlowPack: Bundle file:', bundle);
-
         var file = fs.createWriteStream(bundle);
         if (argv.d) {
-            b.bundle()
-            .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
-            .pipe(file);
+            var gzip = zlib.createGzip({level: zlib.Z_BEST_COMPRESSION});
+            b.bundle().pipe(gzip).pipe(file);
         } else {
             b.bundle().pipe(fs.createWriteStream(bundle));
             ClosureCompiler.compile(bundle, {}, compressBundle(bundle)); 
