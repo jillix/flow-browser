@@ -34,8 +34,6 @@ var argv = require('yargs')
     .strict()
     .argv;
 
-
-
 var base = path.resolve(argv._[0]);
 var base_app_modules = base + '/app_modules';
 var base_node_modules = base + '/node_modules';
@@ -108,7 +106,7 @@ flowApi.getInstances(base, function (err, bundles) {
             var gzip = zlib.createGzip({level: zlib.Z_BEST_COMPRESSION});
             b.bundle().pipe(gzip).pipe(file);
         } else {
-            b.bundle().pipe(fs.createWriteStream(bundle));
+            b.bundle().pipe(file);
             ClosureCompiler.compile(bundle, {}, compressBundle(bundle)); 
         }
     }
@@ -117,7 +115,7 @@ flowApi.getInstances(base, function (err, bundles) {
 function compressBundle (bundle) {
     return function (err, result) {
         if (err) {
-            console.log('FlowPack: Error:', err);
+            console.log(err);
         }
 
         if (result) {
