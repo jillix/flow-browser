@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "Bundle npm modules of a flow app.",
   "main": "index.js",
+  "bin": {
+    "flow-pack": "bin/index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
