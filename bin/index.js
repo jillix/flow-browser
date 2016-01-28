@@ -13,22 +13,30 @@ var zlib = require('zlib');
 var browserify = require('browserify');
 var ClosureCompiler = require('closurecompiler');
 
-var argv = require('yargs').option('d', {
+var argv = require('yargs')
+    .demand(1)
+    .option('d', {
         alias: 'debug',
         default: false,
         type: 'boolean',
         describe: 'Bundle scripts unminified and with a source map.'
     })
+    .option('i', {
+        alias: 'include',
+        type: 'array',
+        describe: 'Bundle a specific modules or files.'
+    })
     .usage('flow-pack [options] [APP_REPO_PATH]')
-    .example('flow-app bundle -d', "Bundle scripts unminified and with a source map.")
+    .example('flow-pack -d', "Bundle scripts unminified and with a source map.")
+    .example('flow-pack -i module file.js', "Bundle specific modules or file.") 
     .help('h')
     .alias('h', 'help')
     .strict()
     .argv;
 
-console.log(argv);
 
-var base = path.resolve(argv._[0] || '../../');
+
+var base = path.resolve(argv._[0]);
 var base_app_modules = base + '/app_modules';
 var base_node_modules = base + '/node_modules';
 
@@ -56,14 +64,16 @@ var flowApi = {
 
                 if (!config.server && config.module) {
                     config.module = config.browser || config.module;
-
-                    if (config.module[0] === '/') {
-                        bundles[config.module] = true;  
-                    } else {
-                        bundles[config.module] = false;
-                    }
+                    bundles[config.module] = config.module[0] === '/' ? true : false;  
                 }
             });
+
+            // include bundles from cli include option
+            if (argv.i) {
+                argv.i.forEach(function (key) {
+                    bundles[key] = key[0] === '/' ? true : false;  
+                });
+            }
 
             callback(null, bundles);
         });
@@ -79,7 +89,7 @@ flowApi.getInstances(base, function (err, bundles) {
 
     for (var bundle in bundles) {
 
-        var b = browserify({debug: false});
+        var b = browserify({debug: argv.d});
         var requirePath = bundle;
 
         if (bundles[bundle]) {
@@ -93,27 +103,28 @@ flowApi.getInstances(base, function (err, bundles) {
             bundle = base_node_modules + '/' + bundle + '/bundle.js';
         }
 
-        var dev;
-        if (dev) {
-            // .. create source maps
-            // .. don't compile
-            // .. zip, yes
-        }
+        console.log('FlowPack: Bundle file:', bundle);
 
-        console.log('Bundle file:', bundle);
-        b.bundle().pipe(fs.createWriteStream(bundle));
-        ClosureCompiler.compile(bundle, {}, compressBundle(bundle)); 
+        var file = fs.createWriteStream(bundle);
+        if (argv.d) {
+            b.bundle()
+            .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
+            .pipe(file);
+        } else {
+            b.bundle().pipe(fs.createWriteStream(bundle));
+            ClosureCompiler.compile(bundle, {}, compressBundle(bundle)); 
+        }
     }
 });
 
 function compressBundle (bundle) {
     return function (err, result) {
         if (err) {
-            console.log('ENGINE BUNDLE ERR:', err);
+            console.log('FlowPack: Error:', err);
         }
 
         if (result) {
-            console.log('ENGINE BUNDLED:', bundle);
+            console.log('FlowPack: File bundled:', bundle);
             fs.writeFileSync(bundle, zlib.gzipSync(result, {level: zlib.Z_BEST_COMPRESSION}));
         }
     }
