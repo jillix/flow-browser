@@ -19,6 +19,7 @@ var argv = require('yargs').option('d', {
         type: 'boolean',
         describe: 'Bundle scripts unminified and with a source map.'
     })
+    .usage('flow-pack [options] [APP_REPO_PATH]')
     .example('flow-app bundle -d', "Bundle scripts unminified and with a source map.")
     .help('h')
     .alias('h', 'help')
