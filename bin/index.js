@@ -38,48 +38,11 @@ var base = path.resolve(argv._[0]);
 var base_app_modules = base + '/app_modules';
 var base_node_modules = base + '/node_modules';
 
-var flowApi = {
-    getInstances: function (app, callback) {
-
-        // TODO check if path "app" exists
-
-        fs.readdir(app + '/composition', function (err, configs) {
-
-            if (err) {
-                return callback(err);
-            }
-
-            // get all file paths to bundle
-            var bundles = {};
-            configs.forEach(function (config) {
-                config = require(app + '/composition/' + config);
-
-                /*
-                    module: "module",
-                    module: "/module/file.js:/module/bundle.js"
-                    browser: "module/file.js"
-                */
-
-                if (!config.server && config.module) {
-                    config.module = config.browser || config.module;
-                    bundles[config.module] = config.module[0] === '/' ? true : false;  
-                }
-            });
-
-            // include bundles from cli include option
-            if (argv.i) {
-                argv.i.forEach(function (key) {
-                    bundles[key] = key[0] === '/' ? true : false;  
-                });
-            }
-
-            callback(null, bundles);
-        });
-    }
-};
+var broptions = { debug: argv.d };
+var b = browserify(broptions);
 
 // bundle the individual modules
-flowApi.getInstances(base, function (err, bundles) {
+getInstances(base, function (err, bundles) {
 
     if (err) {
         throw err;
@@ -87,40 +50,96 @@ flowApi.getInstances(base, function (err, bundles) {
 
     for (var bundle in bundles) {
 
-        var b = browserify({debug: argv.d});
-        var requirePath = bundle;
+        console.log('FlowPack: bundling module:', bundle);
+        b.reset(broptions);
 
+        var exposePath = bundle;
+        var sourcePath = bundle;
+        var bundlePath = bundle;
+
+        // custom app modules require other paths
         if (bundles[bundle]) {
-            requirePath = requirePath.split('/');
-            requirePath.pop();
-            requirePath = requirePath.join('/') + '/bundle.js';
-            b.require(base_app_modules + bundle, {expose: requirePath});
-            bundle = base_app_modules + requirePath;
+            exposePath = exposePath.split('/');
+            exposePath.pop();
+            exposePath = exposePath.join('/') + '/bundle.js';
+            sourcePath = base_app_modules + bundle;
+            bundlePath = base_app_modules + exposePath;
         } else {
-            b.require(bundle);
-            bundle = base_node_modules + '/' + bundle + '/bundle.js';
+            sourcePath = base_node_modules + '/' + bundle;
+            bundlePath = base_node_modules + '/' + bundle + '/bundle.js';
         }
 
-        var file = fs.createWriteStream(bundle);
-        if (argv.d) {
-            var gzip = zlib.createGzip({level: zlib.Z_BEST_COMPRESSION});
-            b.bundle().pipe(gzip).pipe(file);
-        } else {
-            b.bundle().pipe(file);
-            ClosureCompiler.compile(bundle, {}, compressBundle(bundle)); 
-        }
+        b.require(sourcePath, { expose: exposePath });
+        writeBundle(b, sourcePath, bundlePath, !!argv.d, writeErrorHandler);
     }
 });
 
-function compressBundle (bundle) {
-    return function (err, result) {
+function getInstances (app, callback) {
+
+    // TODO check if path "app" exists
+
+    fs.readdir(app + '/composition', function (err, configs) {
+
         if (err) {
-            console.log(err);
+            return callback(err);
         }
 
-        if (result) {
-            console.log('FlowPack: File bundled:', bundle);
-            fs.writeFileSync(bundle, zlib.gzipSync(result, {level: zlib.Z_BEST_COMPRESSION}));
+        // get all file paths to bundle
+        var bundles = {};
+        configs.forEach(function (config) {
+            config = require(app + '/composition/' + config);
+
+            /*
+                module: "module",
+                module: "/module/file.js:/module/bundle.js"
+                browser: "module/file.js"
+            */
+
+            if (!config.server && config.module) {
+                config.module = config.browser || config.module;
+                bundles[config.module] = config.module[0] === '/' ? true : false;
+            }
+        });
+
+        // include bundles from cli include option
+        if (argv.i) {
+            argv.i.forEach(function (key) {
+                bundles[key] = key[0] === '/' ? true : false;
+            });
         }
+
+        callback(null, bundles);
+    });
+}
+
+function writeBundle (b, source, bundle, isDebug, callback) {
+    var file = fs.createWriteStream(bundle);
+    b.bundle().pipe(file);
+
+    file.on('finish', function () {
+        closureCompile(b, bundle, isDebug, function (err, result) {
+            if (result) {
+                fs.writeFileSync(bundle, zlib.gzipSync(result, { level: zlib.Z_BEST_COMPRESSION }));
+                return callback(null, bundle);
+            }
+        });
+    });
+}
+
+function closureCompile (b, bundle, isDebug, callback) {
+
+    // for non-debug builds, compile the code
+    if (isDebug) {
+        return callback(null, fs.readFileSync(bundle));
+    }
+
+    ClosureCompiler.compile(bundle, {}, callback);
+}
+
+function writeErrorHandler (err, bundle) {
+    if (err) {
+        console.error(err);
+    } else {
+        console.log('FlowPack: module bundle written:', bundle);
     }
 }
