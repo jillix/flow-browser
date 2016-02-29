@@ -4,7 +4,7 @@
   "description": "Bundle npm modules of a flow app.",
   "main": "index.js",
   "bin": {
-    "flow-pack": "bin/index.js"
+    "flow-pack": "index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -27,6 +27,8 @@
   "dependencies": {
     "browserify": "^13.0.0",
     "closurecompiler": "^1.5.2",
+    "factor-bundle": "^2.5.0",
+    "mkdirp": "^0.5.1",
     "yargs": "^3.32.0"
   }
 }
