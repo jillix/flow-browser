@@ -84,7 +84,7 @@ getModules(base, function (err, packages) {
         pipeline.on('end', function () {
             if (++count === outputs.length) {
 
-                console.log('Flow-pack.compile:', files.length, 'Files.');
+                console.log('Flow-pack.compile:', outputs.length, 'Files.');
 
                 // compile and compress js files
                 closureCompile(outputs, argv.d, function () {
