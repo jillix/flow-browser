@@ -60,9 +60,13 @@ getModules(base, function (err, packages) {
     var outputs = [];
     Object.keys(packages).forEach(function (module) {
         var pkg = packages[module];
-        var file = pkg._flow_custom ? pkg.main : base_node_modules + '/' + module + '/' + (pkg.browser || pkg.main);
 
-        // TODO check if pkg.browser is a string, otherwise add all files from the object?
+        if (pkg.browser && typeof pkg.browser !== 'string') {
+            // TODO add all files from the object
+            return;
+        }
+
+        var file = pkg._flow_custom ? pkg.main : base_node_modules + '/' + module + '/' + (pkg.browser || pkg.main);
 
         bo.require.push({
             file:  file,
@@ -70,7 +74,6 @@ getModules(base, function (err, packages) {
         });
 
         outputs.push(bundles_target + '/' + module + '.js'); 
-
     });
 
     console.log('Flow-pack.bundle:', outputs.length, 'Files.');
@@ -79,10 +82,9 @@ getModules(base, function (err, packages) {
     var b = browserify(bo);
 
     // uglify code
-    b.transform({
-        global: true
-    }, uglifyify);
+    b.transform({global: true}, uglifyify);
 
+    // handle individual packs
     b.on('factor.pipeline', function (file, pipeline) {
 
         // zip files
