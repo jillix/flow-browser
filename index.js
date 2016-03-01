@@ -19,16 +19,23 @@ var argv = require('yargs')
         type: 'boolean',
         describe: 'Bundle scripts unminified and with a source map.'
     })
+    .option('t', {
+        alias: 'target',
+        default: '.bundles',
+        type: 'string',
+        describe: 'Ensures the target folder for bundles.'
+    })
     .usage('flow-pack [options] [APP_REPO_PATH]')
     .example('flow-pack -d', "Bundle scripts unminified and with a source map.")
+    .example('flow-pack -t .bundles', "Ensures the target folder for bundles.")
     .help('h')
     .alias('h', 'help')
     .strict()
     .argv;
+
 var base = path.resolve(argv._[0]);
-var base_app_modules = base + '/app_modules';
 var base_node_modules = base + '/node_modules';
-var bundles_target = base + '/.bundles';
+var bundles_target = base + '/' + argv.t;
 var bo = {
     debug: argv.d,
     basedir: base,
