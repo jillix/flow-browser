@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 // TODO watchify lib/flow.client.js -vd -o 'gzip -9 > M.js'
+// TODO clean up module by separating functionality into files 
 
 var fs = require('fs');
 var path = require('path');
