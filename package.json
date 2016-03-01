@@ -26,9 +26,9 @@
   "homepage": "https://github.com/jillix/flow-pack#readme",
   "dependencies": {
     "browserify": "^13.0.0",
-    "closurecompiler": "^1.5.2",
     "factor-bundle": "^2.5.0",
     "mkdirp": "^0.5.1",
+    "uglifyify": "^3.0.1",
     "yargs": "^3.32.0"
   }
 }
