@@ -8,7 +8,7 @@ var zlib = require('zlib');
 var mkdirp = require('mkdirp');
 var browserify = require('browserify');
 var factor = require('factor-bundle');
-var ClosureCompiler = require('closurecompiler');
+var uglifyify = require('uglifyify');
 var getModules = require('./lib/getModules');
 var argv = require('yargs')
     .demand(1)
@@ -77,51 +77,25 @@ getModules(base, function (err, packages) {
 
     var count = 0;
     var b = browserify(bo);
-    b.plugin(factor, {outputs: outputs});
 
-    // TODO find a better way, to know when all bundles are written.
+    // uglify code
+    b.transform({
+        global: true
+    }, uglifyify);
+
     b.on('factor.pipeline', function (file, pipeline) {
+
+        // zip files
+        pipeline.get('pack').push(zlib.createGzip());
+
+        // TODO find a better way, to know when all bundles are written.
         pipeline.on('end', function () {
             if (++count === outputs.length) {
-
-                console.log('Flow-pack.compile:', outputs.length, 'Files.');
-
-                // compile and compress js files
-                closureCompile(outputs, argv.d, function () {
-                    console.log('Flow-pack.bundle: All files bundled.');
-                });
+                console.log('Flow-pack.bundle: All files bundled.');
             }
         });
     });
+    b.plugin(factor, {outputs: outputs});
     b.on('error', console.log.bind(console));
     b.bundle();
 });
-
-function closureCompile (files, isDebug, callback) {
-
-    var count = 0;
-    var callback_handler = function (file) {
-        return function (err, bundle) {
-
-            if (err) {
-                console.log(err);
-            }
-
-            fs.writeFileSync(file, zlib.gzipSync(bundle, {level: zlib.Z_BEST_COMPRESSION}));
-
-            if (++count === files.length) {
-                callback();
-            }
-        };
-    };
-
-    files.forEach(function (file) {
-
-        // for non-debug builds, compile the code
-        if (isDebug) {
-            return callback_handler(file)(null, fs.readFileSync(file));
-        }
-
-        ClosureCompiler.compile(file, {language_out: 'ES5'}, callback_handler(file));
-    });
-}
