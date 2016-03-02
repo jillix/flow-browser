@@ -1,15 +1,13 @@
 #!/usr/bin/env node
 
-// TODO watchify lib/flow.client.js -vd -o 'gzip -9 > M.js'
-// TODO clean up module by separating functionality into files 
-
 var fs = require('fs');
 var path = require('path');
 var zlib = require('zlib');
 var mkdirp = require('mkdirp');
 var browserify = require('browserify');
 var factor = require('factor-bundle');
-var uglifyify = require('uglifyify');
+var uglify = require('uglifyify');
+//var watchify = require('watchify');
 var getModules = require('./lib/getModules');
 var argv = require('yargs')
     .demand(1)
@@ -34,13 +32,7 @@ var argv = require('yargs')
     .argv;
 
 var base = path.resolve(argv._[0]);
-var base_node_modules = base + '/node_modules';
-var bundles_target = base + '/' + argv.t;
-var bo = {
-    debug: argv.d,
-    basedir: base,
-    require: []
-};
+var bundles_target = base + '/' + argv.t; 
 
 // ensure bundle target
 mkdirp(bundles_target, function (err) {
@@ -53,6 +45,7 @@ mkdirp(bundles_target, function (err) {
         }
 
         var outputs = [];
+        var entries = []; 
         Object.keys(packages).forEach(function (module) {
             var pkg = packages[module];
 
@@ -61,9 +54,9 @@ mkdirp(bundles_target, function (err) {
                 return;
             }
 
-            var file = pkg._flow_custom ? pkg.main : base_node_modules + '/' + module + '/' + (pkg.browser || pkg.main);
+            var file = pkg._flow_custom ? pkg.main : module;
 
-            bo.require.push({
+            entries.push({
                 file:  file,
                 expose: module
             });
@@ -71,30 +64,33 @@ mkdirp(bundles_target, function (err) {
             outputs.push(bundles_target + '/' + module + '.js'); 
         });
 
-        console.log('Flow-pack.bundle:', outputs.length, 'Files.');
+        console.log('Flow-pack.bundle:', outputs.length, 'Files..');
 
         var count = 0;
-        var b = browserify(bo);
-
-        // uglify code
-        b.transform({global: true}, uglifyify);
-
-        // handle individual packs
-        b.on('factor.pipeline', function (file, pipeline) {
-
-            // zip files
-            pipeline.get('pack').push(zlib.createGzip());
-
-            // TODO find a better way, to know when all bundles are written.
-            pipeline.on('end', function () {
-                if (++count === outputs.length) {
-                    console.log('Flow-pack.bundle: All files bundled.');
-                }
-            });
+        var b = browserify({
+            cache: {},
+            packageCache: {},
+            debug: argv.d,
+            basedir: base,
+            require: entries,
+            plugin: [[factor, {outputs: outputs}]/*, watchify*/]
         });
 
-        b.plugin(factor, {outputs: outputs});
+        // TODO make watchify work
+        /*b.on('update', function () {
+            b.bundle();
+        });*/ 
+
         b.on('error', console.log.bind(console));
+
+        // uglify and zip files
+        b.on('factor.pipeline', function (file, pipeline) {
+            if (!argv.d) {
+                pipeline.push(uglify(file, {sourcemap: false}));
+            }
+
+            pipeline.push(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}));
+        });
         b.bundle();
     });
 });
