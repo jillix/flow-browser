@@ -16,6 +16,12 @@ var argv = require('yargs')
         type: 'boolean',
         describe: 'Bundle scripts unminified and with a source map.'
     })
+    .option('w', {
+        alias: 'watch',
+        default: false,
+        type: 'boolean',
+        describe: 'Rebundle on file change.'
+    })
     .option('t', {
         alias: 'target',
         default: '.bundles',
@@ -24,6 +30,7 @@ var argv = require('yargs')
     })
     .usage('flow-pack [options] [APP_REPO_PATH]')
     .example('flow-pack -d', "Bundle scripts unminified and with a source map.")
+    .example('flow-pack -w', "Rebundle on file change.")
     .example('flow-pack -t .bundles', "Ensures the target folder for bundles.")
     .help('h')
     .alias('h', 'help')
@@ -75,7 +82,7 @@ function bundle (module, pkg, cb) {
     b.on('error', console.log.bind(console));
 
     // watchify
-    if (argv.d) {
+    if (argv.w) {
         b.on('update', function (file) {
             console.log('Flow-pack.bundle: Rebundle', file[0]);
             b.bundle()
