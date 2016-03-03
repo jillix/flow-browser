@@ -5,9 +5,8 @@ var path = require('path');
 var zlib = require('zlib');
 var mkdirp = require('mkdirp');
 var browserify = require('browserify');
-var factor = require('factor-bundle');
 var uglify = require('uglifyify');
-//var watchify = require('watchify');
+var watchify = require('watchify');
 var getModules = require('./lib/getModules');
 var argv = require('yargs')
     .demand(1)
@@ -44,53 +43,55 @@ mkdirp(bundles_target, function (err) {
             throw err;
         }
 
-        var outputs = [];
-        var entries = []; 
-        Object.keys(packages).forEach(function (module) {
-            var pkg = packages[module];
-
-            if (pkg.browser && typeof pkg.browser !== 'string') {
-                // TODO add all files from the object
-                return;
-            }
-
-            var file = pkg._flow_custom ? pkg.main : module;
-
-            entries.push({
-                file:  file,
-                expose: module
-            });
-
-            outputs.push(bundles_target + '/' + module + '.js'); 
-        });
-
-        console.log('Flow-pack.bundle:', outputs.length, 'Files..');
-
         var count = 0;
-        var b = browserify({
-            cache: {},
-            packageCache: {},
-            debug: argv.d,
-            basedir: base,
-            require: entries,
-            plugin: [[factor, {outputs: outputs}]/*, watchify*/]
-        });
-
-        // TODO make watchify work
-        /*b.on('update', function () {
-            b.bundle();
-        });*/ 
-
-        b.on('error', console.log.bind(console));
-
-        // uglify and zip files
-        b.on('factor.pipeline', function (file, pipeline) {
-            if (!argv.d) {
-                pipeline.push(uglify(file, {sourcemap: false}));
+        var modules = Object.keys(packages);
+        var handler = function () {
+            if (++count === modules.length) {
+                return console.log('Done');
             }
 
-            pipeline.push(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}));
-        });
-        b.bundle();
+            console.log('Flow-pack.bundle:', modules[count]); 
+            bundle(modules[count], packages[modules[count]], handler);
+        };
+
+        console.log('Flow-pack.bundle:', modules[count]); 
+        bundle(modules[count], packages[modules[count]], handler);
     });
 });
+
+function bundle (module, pkg, cb) {
+
+    // browserify
+    var b = browserify({
+        cache: {},
+        packageCache: {},
+        debug: argv.d,
+        basedir: base,
+        require: {
+            file: pkg._flow_custom ? pkg.main : module,
+            expose: module
+        }
+    });
+    b.on('error', console.log.bind(console));
+
+    // watchify
+    if (argv.d) {
+        b.on('update', function (file) {
+            console.log('Flow-pack.bundle: Rebundle', file[0]);
+            b.bundle()
+            .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
+            .pipe(fs.createWriteStream(bundles_target + '/' + module + '.js'))
+        });
+        b.plugin(watchify);
+
+    // uglify
+    } else {
+        b.transform({global: true}, uglify);
+    }
+
+    // gzip and write bundle
+    b.bundle()
+    .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
+    .pipe(fs.createWriteStream(bundles_target + '/' + module + '.js'))
+    .on('finish', cb);
+};
