@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-var DEV = process.env.NODE_ENV !== 'production';
-
 var fs = require('fs');
 var path = require('path');
 var zlib = require('zlib');
@@ -9,7 +7,7 @@ var mkdirp = require('mkdirp');
 var babelify = require('babelify');
 var browserify = require('browserify');
 var uglify = require('uglifyify');
-var watchify;
+var watchify = require('watchify');
 var getModules = require('./lib/getModules');
 
 var argv = require('yargs')
@@ -40,19 +38,6 @@ var argv = require('yargs')
     .alias('h', 'help')
     .strict()
     .argv;
-
-if (DEV) {
-    try {
-        watchify = require('watchify');
-    } catch (err) {
-        if (err.code === 'MODULE_NOT_FOUND') {
-            console.error('Disabling watchify. Are you running in development?');
-            DEV = false;
-        } else {
-            throw err;
-        }
-    }
-}
 
 var base = path.resolve(argv._[0]);
 var bundles_target = base + '/' + argv.t; 
@@ -96,25 +81,23 @@ function bundle (module, pkg, cb) {
             expose: module
         }
     });
-    b.on('error', console.log.bind(console));
 
     // babelify
     b.transform(babelify, {presets: ['es2015'], global: true});
 
     // watchify
     if (argv.w) {
-        if (DEV && watchify) {
-            b.on('update', function (file) {
-                console.log('Flow-pack.bundle: Rebundle', file[0]);
-                b.bundle()
-                    .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
-                    .pipe(fs.createWriteStream(bundles_target + '/' + module + '.js'));
-            });
-            b.plugin(watchify);
-        }
+        b.on('update', function (file) {
+            console.log('Flow-pack.bundle: Rebundle', file[0]);
+            b.bundle()
+                .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
+                .pipe(fs.createWriteStream(bundles_target + '/' + module + '.js'));
+        });
+        b.plugin(watchify);
     }
+
     // uglify
-    else {
+    if (!argv.d) {
         b.transform(uglify, {global: true});
     }
 
@@ -122,5 +105,6 @@ function bundle (module, pkg, cb) {
     b.bundle()
         .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
         .pipe(fs.createWriteStream(bundles_target + '/' + module + '.js'))
-        .on('finish', cb);
+        .on('finish', cb)
+        .on('error', console.log.bind(console));
 }
