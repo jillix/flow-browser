@@ -6,6 +6,7 @@ var fs = require('fs');
 var path = require('path');
 var zlib = require('zlib');
 var mkdirp = require('mkdirp');
+var babelify = require('babelify');
 var browserify = require('browserify');
 var uglify = require('uglifyify');
 var watchify;
@@ -97,6 +98,9 @@ function bundle (module, pkg, cb) {
     });
     b.on('error', console.log.bind(console));
 
+    // babelify
+    b.transform(babelify, {presets: ['es2015'], global: true});
+
     // watchify
     if (argv.w) {
         if (DEV && watchify) {
@@ -111,7 +115,7 @@ function bundle (module, pkg, cb) {
     }
     // uglify
     else {
-        b.transform({global: true}, uglify);
+        b.transform(uglify, {global: true});
     }
 
     // gzip and write bundle
