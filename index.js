@@ -18,6 +18,12 @@ var argv = require('yargs')
         type: 'boolean',
         describe: 'Bundle scripts unminified and with a source map.'
     })
+    .option('q', {
+        alias: 'quiet',
+        default: false,
+        type: 'boolean',
+        describe: 'Do not print log information.'
+    })
     .option('w', {
         alias: 'watch',
         default: false,
@@ -56,19 +62,17 @@ mkdirp(bundles_target, function (err) {
         var modules = Object.keys(packages);
         var handler = function () {
             if (++count === modules.length) {
-                return console.log('Done');
+                return;
             }
 
-            console.log('Flow-pack.bundle:', modules[count]); 
             bundle(modules[count], packages[modules[count]], handler);
         };
 
-        console.log('Flow-pack.bundle:', modules[count]); 
         bundle(modules[count], packages[modules[count]], handler);
     });
 });
 
-function bundle (module, pkg, cb) {
+function bundle (module, pkg, callback) {
 
     // browserify
     var b = browserify({
@@ -82,29 +86,46 @@ function bundle (module, pkg, cb) {
         }
     });
 
+    // the actual file writer function
+    function bundlePipe (onFinish) {
+        var stream = b.bundle()
+            .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
+            .pipe(fs.createWriteStream(bundles_target + '/' + module + '.js'));
+        if (typeof onFinish === 'function') {
+            stream.on('finish', onFinish);
+        }
+    }
+
+    // log errors
+    b.on('error', console.error.bind(console));
+
     // babelify
     b.transform(babelify, {presets: ['es2015'], global: true});
-
-    // watchify
-    if (argv.w) {
-        b.on('update', function (file) {
-            console.log('Flow-pack.bundle: Rebundle', file[0]);
-            b.bundle()
-                .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
-                .pipe(fs.createWriteStream(bundles_target + '/' + module + '.js'));
-        });
-        b.plugin(watchify);
-    }
 
     // uglify
     if (!argv.d) {
         b.transform(uglify, {global: true});
     }
 
+    // watchify
+    if (argv.w) {
+        if (!argv.q) {
+            console.log('Flow-pack.watch:', module);
+        }
+        b.on('update', function (file) {
+            if (!argv.q) {
+                console.log('Flow-pack.bundle:', file[0]);
+            }
+            bundlePipe();
+        });
+        b.plugin(watchify);
+        bundlePipe();
+        return callback();
+    }
+
     // gzip and write bundle
-    b.bundle()
-        .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
-        .pipe(fs.createWriteStream(bundles_target + '/' + module + '.js'))
-        .on('finish', cb)
-        .on('error', console.log.bind(console));
+    if (!argv.q) {
+        console.log('Flow-pack.bundle:', module);
+    }
+    bundlePipe(callback);
 }
