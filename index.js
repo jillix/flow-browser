@@ -78,7 +78,7 @@ function bundle (module, pkg, callback) {
     var b = browserify({
         cache: {},
         packageCache: {},
-        debug: argv.d,
+        //debug: argv.d,
         basedir: base,
         require: {
             file: pkg._flow_custom ? pkg.main : module,
