@@ -1,36 +1,30 @@
-import Flow from 'flow';
+'use strict'
 
-export default function flow (event, options) {
-    let flow = Flow({
-        cache: {},
-        read: (name, callback) => {
+const bundler = require('./lib/browserify');
+const modules = {};
 
-            // TODO triple stream
-            fetch('/_i/' + name + '.json').then(response => {
-
-                if (!response.ok) {
-                    return callback(new Error(response.statusText));
-                }
-
-                return response.json();
-
-            }).then(composition => callback(null, composition));
-        },
-        mod: (name, callback) => {
-            var node = document.createElement('script');
-            var path = name + '.js';
-            node.onload = () => {
-                node.remove();
-                callback(null, require(name));
-            };
-
-            // set url and append dom script elm to the document head
-            node.src = '/_m/' + path;
-            document.head.appendChild(node);
-        }
-    })(event, options);
-    //flow.on('error', error => console.error(error));
-    //flow.on('data', error => console.log(error));
-    flow.end(1);
-    return flow;
+if (!config.entrypoints || !config.read || !config.mod) {
+    throw new Error('Flow-browser: Invalid environment config.');
 }
+
+exports.client = function (args, ready) {
+    bundler('flow-browser', ready);
+};
+
+exports.bundle = function (args, data, next) {
+
+    if (modules[data.module]) {
+        data.file = modules[data.module];
+        return next(null, data);
+    }
+
+    bundler(data.module, (err, file) => {
+
+        if (err) {
+            return next(err);
+        }
+
+        data.file = file;
+        next(null, data);
+    });
+}; 
