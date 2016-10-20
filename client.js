@@ -1,14 +1,31 @@
 'use strict'
 
 const Flow = require('flow');
+const cache = {};
 
 module.exports = function (event, options) {
     let flow = Flow({
-        cache: {},
+        cache: {
+            get: (key) => {
+                return cache[key];
+            },
+            set: (key, val) => {
+                cache[key] = val;
+            },
+            peek: (key) => {
+                return cache[key];
+            },
+            has: (key) => {
+                return !!cache[key];
+            },
+            del: (key) => {
+                delete cache[key];
+            }
+        },
         read: (name, callback) => {
 
             // TODO triple stream
-            fetch('/_i/' + name + '.json').then(response => {
+            fetch('FLOW_READ_URL' + name).then(response => {
 
                 if (!response.ok) {
                     return callback(new Error(response.statusText));
@@ -27,7 +44,7 @@ module.exports = function (event, options) {
             };
 
             // set url and append dom script elm to the document head
-            node.src = '/_m/' + path;
+            node.src = 'FLOW_MODULE_URL' + path;
             document.head.appendChild(node);
         }
     })(event, options);
