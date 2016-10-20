@@ -3,10 +3,6 @@
 const bundler = require('./lib/browserify');
 const modules = {};
 
-if (!config.entrypoints || !config.read || !config.mod) {
-    throw new Error('Flow-browser: Invalid environment config.');
-}
-
 exports.client = function (args, ready) {
     bundler('flow-browser', ready);
 };
