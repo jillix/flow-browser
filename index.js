@@ -1,30 +1,26 @@
 'use strict'
 
 const bundler = require('./lib/browserify');
-const modules = {};
+const module_name = 'flow-browser';
 
 exports.client = function (args, data, next) {
+
     // TODO merge entrypoint config with client adapter
-    bundler('flow-browser', args.target, (err, module) => {
+    bundler(args.target, {
+        file: module_name,
+        exposemodule_nameme
+    }, (err, module) => {
         data.file = module;
-        next(null, data);
+        next(err, data);
     });
 };
 
 exports.bundle = function (args, data, next) {
-
-    if (modules[data.module]) {
-        data.file = modules[data.module];
-        return next(null, data);
-    }
-
-    bundler(data.module, (err, file) => {
-
-        if (err) {
-            return next(err);
-        }
-
-        data.file = file;
-        next(null, data);
+    bundler(args.target, {
+        file: data.module,
+        expose: data.module
+    }, (err, module) => {
+        data.file = module;
+        next(err, data);
     });
 }; 
