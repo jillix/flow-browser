@@ -3,8 +3,12 @@
 const bundler = require('./lib/browserify');
 const modules = {};
 
-exports.client = function (args, ready) {
-    bundler('flow-browser', ready);
+exports.client = function (args, data, next) {
+    // TODO merge entrypoint config with client adapter
+    bundler('flow-browser', args.target, (err, module) => {
+        data.file = module;
+        next(null, data);
+    });
 };
 
 exports.bundle = function (args, data, next) {
