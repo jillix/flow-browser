@@ -1,6 +1,8 @@
-import Flow from 'flow';
+'use strict'
 
-export default function flow (event, options) {
+const Flow = require('flow');
+
+module.exports = function (event, options) {
     let flow = Flow({
         cache: {},
         read: (name, callback) => {
@@ -33,4 +35,4 @@ export default function flow (event, options) {
     //flow.on('data', error => console.log(error));
     flow.end(1);
     return flow;
-}
+};
