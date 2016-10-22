@@ -20,11 +20,12 @@ exports.client = function (args, data, next) {
 };
 
 exports.bundle = function (args, data, next) {
-    bundler(args.target, {
-        file: data.module,
-        expose: data.module
+    let module_name = data.module.slice(0, -3);
+    bundler(args.target + '/' + module_name + '.js', {
+        file: module_name,
+        expose: module_name
     }, (err, module) => {
-        data.file = module;
+        data.file = args.target + '/' + module_name + '.js';
         next(err, data);
     });
 }; 
