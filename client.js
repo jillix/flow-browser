@@ -2,6 +2,45 @@
 
 const Flow = require('flow');
 const cache = {};
+const Readable = require('stream').Readable;
+
+function AStream (array) {
+
+    // source
+    let count = -1;
+    let source = () => {
+
+        if (!stream.array) {
+            stream.pause();
+            return;
+        }
+
+        if (++count === stream.array.length) {
+            stream.push(null);
+        } else if (stream.push(stream.array[count])) {
+            source();
+        }
+    };
+
+    let stream = new Readable({
+        objectMode: true,
+        read: source
+    });
+
+    if (array) {
+        stream.array = array;
+    }
+
+    stream.set = (array) => {
+        stream.array = array;
+        stream.resume();
+        source();
+    };
+
+    stream.pause();
+
+    return stream;
+};
 
 module.exports = function (event, options) {
     let flow = Flow({
@@ -22,18 +61,21 @@ module.exports = function (event, options) {
                 delete cache[key];
             }
         },
-        read: (name, callback) => {
+        read: (event_iri) => {
 
-            // TODO triple stream
-            fetch('FLOW_READ_URL' + name).then(response => {
+            const stream = AStream();
+
+            fetch('FLOW_READ_URL' + event_iri).then(response => {
 
                 if (!response.ok) {
-                    return callback(new Error(response.statusText));
+                    return stream.emit('error', new Error(response.statusText));
                 }
 
                 return response.json();
 
-            }).then(composition => callback(null, composition));
+            }).then(triples => stream.set(triples));
+
+            return stream;
         },
         mod: (name, callback) => {
             var node = document.createElement('script');
