@@ -77,12 +77,12 @@ module.exports = function (event, options) {
 
             return stream;
         },
-        mod: (name, callback) => {
+        mod: (name, session, callback) => {
             var node = document.createElement('script');
             var path = name + '.js';
             node.onload = () => {
                 node.remove();
-                callback(null, require(name));
+                callback(null, require(name.split('/').pop()));
             };
 
             // set url and append dom script elm to the document head
