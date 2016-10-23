@@ -25,7 +25,7 @@ exports.bundle = function (args, data, next) {
 
     const module_name = data.module.slice(0, -3);
     const file_path = args.target + '/' + module_name + '.js';
-    const repo = data.owner + '/' + module_name + '#flow_v0.1.0';
+    const repo = data.owner + '/' + module_name + (module_name === 'builder' ? '#pure-graph' : '#flow_v0.1.0');
 
     fs.access(process.cwd() + '/node_modules/' + module_name, (err) => {
 
