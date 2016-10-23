@@ -1,6 +1,7 @@
 'use strict'
 
 const fs = require('fs');
+const exec = require('child_process').exec;
 const bundler = require('./lib/browserify');
 const module_name = 'flow-browser';
 const replace_read = /FLOW_READ_URL/;
@@ -27,7 +28,7 @@ exports.bundle = function (args, data, next) {
     const repo = data.owner + '/' + module_name + '#flow_v0.1.0';
 
     fs.access(process.cwd() + '/node_modules/' + module_name, (err) => {
-console.log('Bundle:', err);
+
         if (err) {
              exec('npm i --prefix ' + process.cwd() + ' ' + repo, err => {
 
