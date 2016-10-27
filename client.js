@@ -90,8 +90,7 @@ module.exports = function (event, options) {
             document.head.appendChild(node);
         }
     })(event, options);
-    //flow.on('error', error => console.error(error));
-    //flow.on('data', error => console.log(error));
+    flow.on('error', error => console.error(error));
     flow.end(1);
     return flow;
 };
