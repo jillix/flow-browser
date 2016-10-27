@@ -40,7 +40,7 @@ exports.bundle = function (args, data, next) {
                     return next(err);
                 }
 
-                done(file_path, module_name, done);
+                bundle(file_path, module_name, done);
             });
         }
 
