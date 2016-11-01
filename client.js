@@ -91,6 +91,6 @@ module.exports = function (event, options) {
         }
     })(event, options);
     flow.on('error', error => console.error(error));
-    flow.end(1);
+    flow.end({});
     return flow;
 };
