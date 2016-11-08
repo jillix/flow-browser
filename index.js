@@ -4,24 +4,23 @@ const fs = require('fs');
 const exec = require('child_process').exec;
 const bundler = require('./lib/browserify');
 const module_name = 'flow-browser';
-const replace_read = /FLOW_READ_URL/;
-const replace_module = /FLOW_MODULE_URL/;
+const replace_from = /FLOW_ENV/;
 
-exports.client = function (args, data, next) {
+exports.client = function (scope, inst, args, data, next) {
+
+    const replace_to = scope.env.browser ? JSON.stringify(scope.env.browser) : '{}';
+
     bundler(args.target, {
         file: module_name,
         expose: module_name,
-        replace: [
-            {from: replace_read, to: process.flow_env.browser.read},
-            {from: replace_module, to: process.flow_env.browser.mod}
-        ]
+        replace: [{from: replace_from, to: replace_to}]
     }, (err, module) => {
         data.file = module;
         next(err, data);
     });
 };
 
-exports.bundle = function (args, data, next) {
+exports.bundle = function (scope, inst, args, data, next) {
 
     const module_name = data.module.slice(0, -3);
     const file_path = args.target + '/' + module_name + '.js';
