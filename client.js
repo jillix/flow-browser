@@ -3,12 +3,12 @@
 const Flow = require('flow');
 const cache = {};
 const Readable = require('stream').Readable;
-
+ 
 function AStream (array) {
 
     // source
     let count = -1;
-    let source = () => {
+    const source = () => {
 
         if (!stream.array) {
             stream.pause();
@@ -22,7 +22,7 @@ function AStream (array) {
         }
     };
 
-    let stream = new Readable({
+    const stream = new Readable({
         objectMode: true,
         read: source
     });
@@ -42,8 +42,9 @@ function AStream (array) {
     return stream;
 };
 
-module.exports = function (event, options) {
-    let flow = Flow({
+module.exports = (event, options) => {
+    const env = FLOW_ENV;
+    const scope = {
         cache: {
             get: (key) => {
                 return cache[key];
@@ -65,7 +66,7 @@ module.exports = function (event, options) {
 
             const stream = AStream();
 
-            fetch('FLOW_READ_URL' + event_iri).then(response => {
+            fetch(env.event + event_iri).then(response => {
 
                 if (!response.ok) {
                     return stream.emit('error', new Error(response.statusText));
@@ -78,18 +79,18 @@ module.exports = function (event, options) {
             return stream;
         },
         mod: (name, session, callback) => {
-            var node = document.createElement('script');
-            var path = name + '.js';
+            const node = document.createElement('script');
+            const path = name + '.js';
             node.onload = () => {
                 node.remove();
                 callback(null, require(name.split('/').pop()));
             };
 
-            // set url and append dom script elm to the document head
-            node.src = 'FLOW_MODULE_URL' + path;
+            node.src = env.module + path;
             document.head.appendChild(node);
         }
-    })(event, options);
+    };
+    const flow = Flow(env, scope)(event, options);
     flow.on('error', error => console.error(error));
     flow.end({});
     return flow;
