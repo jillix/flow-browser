@@ -24,7 +24,7 @@ exports.bundle = function (scope, inst, args, data, next) {
 
     const module_name = data.module.slice(0, -3);
     const file_path = args.target + '/' + module_name + '.js';
-    const repo = data.owner + '/' + module_name + (module_name === 'flow-visualizer' ? '' : '#flow_v0.1.0');
+    const repo = data.owner + '/' + module_name;
     const done  = (err, module) => {
         data.file = file_path;
         next(err, data); 
