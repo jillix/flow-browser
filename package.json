@@ -28,7 +28,7 @@
     "babelify": "^7.3.0",
     "browserify": "^13.1.0",
     "browserify-replace": "^0.9.0",
-    "flow": "github:jillix/flow#linked-data",
+    "flow": "github:jillix/flow",
     "uglifyify": "^3.0.3"
   }
 }
