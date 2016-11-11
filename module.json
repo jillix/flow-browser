@@ -1,16 +1,14 @@
 {
     "@context": [
-        "http://localhost:8080/context/module.jsonld",
-        {
-        }
+        "http://schema.jillix.net/context/module.jsonld"
     ],
-    "@id": "https://github.com/jillix/flow-pack#readme",
+    "@id": "https://github.com/jillix/flow-browser",
     "@type": "Module",
-    "name": "flow-pack",
-    "version": "0.0.1",
-    "description": "Bundle npm modules of a flow app.",
-    "author": "jillix",
-    "gitRepository": "git+https://github.com/jillix/flow-pack.git",
+    "name": "flow-browser",
+    "version": "0.1.0",
+    "description": "Bundle flow modules for use in a browser.",
+    "author": "Adrian Ottiker <adrian@ottiker.com>",
+    "gitRepository": "git+https://github.com/jillix/flow-browser.git",
     "exports": [],
-    "options": []
+    "args": []
 }

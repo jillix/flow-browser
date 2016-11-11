@@ -1,131 +1,55 @@
-#!/usr/bin/env node
+'use strict'
 
-var fs = require('fs');
-var path = require('path');
-var zlib = require('zlib');
-var mkdirp = require('mkdirp');
-var babelify = require('babelify');
-var browserify = require('browserify');
-var uglify = require('uglifyify');
-var watchify = require('watchify');
-var getModules = require('./lib/getModules');
+const fs = require('fs');
+const exec = require('child_process').exec;
+const bundler = require('./lib/browserify');
+const module_name = 'flow-browser';
+const replace_from = /FLOW_ENV/;
 
-var argv = require('yargs')
-    .demand(1)
-    .option('d', {
-        alias: 'debug',
-        default: false,
-        type: 'boolean',
-        describe: 'Bundle scripts unminified and with a source map.'
-    })
-    .option('q', {
-        alias: 'quiet',
-        default: false,
-        type: 'boolean',
-        describe: 'Do not print log information.'
-    })
-    .option('w', {
-        alias: 'watch',
-        default: false,
-        type: 'boolean',
-        describe: 'Rebundle on file change.'
-    })
-    .option('t', {
-        alias: 'target',
-        default: '.bundles',
-        type: 'string',
-        describe: 'Ensures the target folder for bundles.'
-    })
-    .usage('flow-pack [options] [APP_REPO_PATH]')
-    .example('flow-pack -d', "Bundle scripts unminified and with a source map.")
-    .example('flow-pack -w', "Rebundle on file change.")
-    .example('flow-pack -t .bundles', "Ensures the target folder for bundles.")
-    .help('h')
-    .alias('h', 'help')
-    .strict()
-    .argv;
+exports.client = function (scope, inst, args, data, next) {
 
-var base = path.resolve(argv._[0]);
-var bundles_target = base + '/' + argv.t; 
+    const replace_to = scope.env.browser ? JSON.stringify(scope.env.browser) : '{}';
 
-// ensure bundle target
-mkdirp(bundles_target, function (err) {
+    bundler(args.target, {
+        file: module_name,
+        expose: module_name,
+        replace: [{from: replace_from, to: replace_to}]
+    }, (err, module) => {
+        data.file = module;
+        next(err, data);
+    });
+};
 
-    // bundle the individual modules
-    getModules(base, function (err, packages) {
+exports.bundle = function (scope, inst, args, data, next) {
+
+    const module_name = data.module.slice(0, -3);
+    const file_path = args.target + '/' + module_name + '.js';
+    const repo = data.owner + '/' + module_name + (module_name === 'flow-visualizer' ? '' : '#flow_v0.1.0');
+    const done  = (err, module) => {
+        data.file = file_path;
+        next(err, data); 
+    };
+
+    fs.access(process.cwd() + '/node_modules/' + module_name, (err) => {
 
         if (err) {
-            throw err;
+             return exec('npm i --prefix ' + process.cwd() + ' ' + repo, err => {
+
+                if (err) {
+                    return next(err);
+                }
+
+                bundle(file_path, module_name, done);
+            });
         }
 
-        var count = 0;
-        var modules = Object.keys(packages);
-        var handler = function () {
-            if (++count === modules.length) {
-                return;
-            }
-
-            bundle(modules[count], packages[modules[count]], handler);
-        };
-
-        bundle(modules[count], packages[modules[count]], handler);
+        bundle(file_path, module_name, done);
     });
-});
+}; 
 
-function bundle (module, pkg, callback) {
-
-    // browserify
-    var b = browserify({
-        cache: {},
-        packageCache: {},
-        //debug: argv.d,
-        basedir: base,
-        require: {
-            file: pkg._flow_custom ? pkg.main : module,
-            expose: module
-        }
-    });
-
-    // the actual file writer function
-    function bundlePipe (onFinish) {
-        var stream = b.bundle()
-            .pipe(zlib.createGzip({level: zlib.Z_BEST_COMPRESSION}))
-            .pipe(fs.createWriteStream(bundles_target + '/' + module + '.js'));
-        if (typeof onFinish === 'function') {
-            stream.on('finish', onFinish);
-        }
-    }
-
-    // log errors
-    b.on('error', console.error.bind(console));
-
-    // babelify
-    b.transform(babelify, {presets: ['es2015'], global: true});
-
-    // uglify
-    if (!argv.d) {
-        b.transform(uglify, {global: true});
-    }
-
-    // watchify
-    if (argv.w) {
-        if (!argv.q) {
-            console.log('Flow-pack.watch:', module);
-        }
-        b.on('update', function (file) {
-            if (!argv.q) {
-                console.log('Flow-pack.bundle:', file[0]);
-            }
-            bundlePipe();
-        });
-        b.plugin(watchify);
-        bundlePipe();
-        return callback();
-    }
-
-    // gzip and write bundle
-    if (!argv.q) {
-        console.log('Flow-pack.bundle:', module);
-    }
-    bundlePipe(callback);
+function bundle (file_path, module_name, done) {
+    bundler(file_path, {
+        file: module_name,
+        expose: module_name
+    }, done);
 }
