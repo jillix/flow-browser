@@ -3,6 +3,7 @@
 const Flow = require('flow');
 const cache = {};
 const Readable = require('stream').Readable;
+const RE_method_path = /^([^\/]+)\/([^#]+)(?:#([^\?]+))?\?(.*)$/;
  
 function AStream (array) {
 
@@ -62,7 +63,7 @@ module.exports = (event, options) => {
                 delete cache[key];
             }
         },
-        read: (event_iri) => {
+        seq: (event_iri) => {
 
             const stream = AStream();
 
@@ -78,12 +79,18 @@ module.exports = (event, options) => {
 
             return stream;
         },
-        mod: (name, session, callback) => {
+        fn: (method_iri, session, callback) => {
+
+            method_iri = method_iri.match(RE_method_path);
+            if (!method_iri || !method_iri[1] || !method_iri[2] || !method_iri[4]) {
+                return callback(new Error('Flow-nodejs.adapter.fn: Invalid method path.'));
+            }
+
             const node = document.createElement('script');
-            const path = name + '.js';
+            const path = method_iri[2] + '.js';
             node.onload = () => {
                 node.remove();
-                callback(null, require(name.split('/').pop()));
+                callback(null, require(name.split('/').pop())[method_iri[4]]);
             };
 
             node.src = env.module + path;
