@@ -87,10 +87,10 @@ module.exports = (event, options) => {
             }
 
             const node = document.createElement('script');
-            const path = method_iri[2] + '.js';
+            const path = method_iri[1] + '/' + method_iri[2] + '.js';
             node.onload = () => {
                 node.remove();
-                callback(null, require(name.split('/').pop())[method_iri[4]]);
+                callback(null, require(method_iri[2])[method_iri[4]]);
             };
 
             node.src = env.module + path;
