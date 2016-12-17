@@ -3,6 +3,8 @@
 const Flow = require('flow');
 const cache = {};
 const Readable = require('stream').Readable;
+const RE_method_path = /^<([^\/]+)\/([^#]+)(?:#([^\?]+))?\?(.*)>$/;
+const modules = {};
  
 function AStream (array) {
 
@@ -62,11 +64,11 @@ module.exports = (event, options) => {
                 delete cache[key];
             }
         },
-        read: (event_iri) => {
+        seq: (scope, sequence_id, role) => {
 
             const stream = AStream();
 
-            fetch(env.event + event_iri).then(response => {
+            fetch(env.event + sequence_id).then(response => {
 
                 if (!response.ok) {
                     return stream.emit('error', new Error(response.statusText));
@@ -78,12 +80,24 @@ module.exports = (event, options) => {
 
             return stream;
         },
-        mod: (name, session, callback) => {
+        fn: (method_iri, role, callback) => {
+
+            method_iri = method_iri.match(RE_method_path);
+            if (!method_iri || !method_iri[1] || !method_iri[2] || !method_iri[4]) {
+                return callback(new Error('Flow-nodejs.adapter.fn: Invalid method path.'));
+            }
+
+            const path = method_iri[1] + '/' + method_iri[2] + '.js';
+            if (modules[path]) {
+                return callback(null, require(method_iri[2])[method_iri[4]]);
+            }
+
             const node = document.createElement('script');
-            const path = name + '.js';
             node.onload = () => {
+                modules[path] = 1;
                 node.remove();
-                callback(null, require(name.split('/').pop()));
+                // TODO check object path with dot notation
+                callback(null, require(method_iri[2])[method_iri[4]]);
             };
 
             node.src = env.module + path;
