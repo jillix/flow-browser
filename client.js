@@ -4,6 +4,7 @@ const Flow = require('flow');
 const cache = {};
 const Readable = require('stream').Readable;
 const RE_method_path = /^<([^\/]+)\/([^#]+)(?:#([^\?]+))?\?(.*)>$/;
+const modules = {};
  
 function AStream (array) {
 
@@ -86,9 +87,14 @@ module.exports = (event, options) => {
                 return callback(new Error('Flow-nodejs.adapter.fn: Invalid method path.'));
             }
 
-            const node = document.createElement('script');
             const path = method_iri[1] + '/' + method_iri[2] + '.js';
+            if (modules[path]) {
+                return callback(null, require(method_iri[2])[method_iri[4]]);
+            }
+
+            const node = document.createElement('script');
             node.onload = () => {
+                modules[path] = 1;
                 node.remove();
                 // TODO check object path with dot notation
                 callback(null, require(method_iri[2])[method_iri[4]]);
