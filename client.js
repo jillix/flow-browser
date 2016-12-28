@@ -1,6 +1,7 @@
 'use strict'
 
 const Flow = require('flow');
+const libob = require('libobject');
 const cache = {};
 const Readable = require('stream').Readable;
 const RE_method_path = /^<([^\/]+)\/([^#]+)(?:#([^\?]+))?\?(.*)>$/;
@@ -43,6 +44,16 @@ function AStream (array) {
 
     return stream;
 };
+
+function requireFn (module, exports, callback) {
+    let fn = libob.path(exports, require(module));
+
+    if (typeof fn !== 'function') {
+        return callback(new Error('Flow-browser.fn: "' + exports + '" in module "' + module + '" is not a function.'));
+    }
+
+    callback(null, fn);
+}
 
 module.exports = (event, options) => {
     const env = FLOW_ENV;
@@ -89,15 +100,14 @@ module.exports = (event, options) => {
 
             const path = method_iri[1] + '/' + method_iri[2] + '.js';
             if (modules[path]) {
-                return callback(null, require(method_iri[2])[method_iri[4]]);
+                return requireFn(method_iri[2], method_iri[4], callback);
             }
 
             const node = document.createElement('script');
             node.onload = () => {
                 modules[path] = 1;
                 node.remove();
-                // TODO check object path with dot notation
-                callback(null, require(method_iri[2])[method_iri[4]]);
+                requireFn(method_iri[2], method_iri[4], callback);
             };
 
             node.src = env.module + path;
