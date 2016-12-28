@@ -46,7 +46,7 @@ function AStream (array) {
 };
 
 function requireFn (module, exports, callback) {
-    let fn = libob.path(exports, require(module));
+    let fn = libob.path.get(exports, require(module));
 
     if (typeof fn !== 'function') {
         return callback(new Error('Flow-browser.fn: "' + exports + '" in module "' + module + '" is not a function.'));
