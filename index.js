@@ -18,7 +18,7 @@ exports.client = function (scope, inst, args, data, next) {
         const replace_to = scope.env.browser ? JSON.stringify(scope.env.browser) : '{}';
         const replace_start = '';
 
-        bundler(args.target, {
+        bundler(scope.env.production, args.target, {
             file: module_name,
             expose: module_name,
             replace: [{from: replace_from, to: replace_to}]
@@ -56,18 +56,18 @@ exports.bundle = function (scope, inst, args, data, next) {
                         return next(err);
                     }
 
-                    bundle(file_path, module_name, done);
+                    bundle(scope.env.production, file_path, module_name, done);
                 });
             }
 
-            bundle(file_path, module_name, done);
+            bundle(scope.env.production, file_path, module_name, done);
         });
 
     });
 }; 
 
-function bundle (file_path, module_name, done) {
-    bundler(file_path, {
+function bundle (production, file_path, module_name, done) {
+    bundler(production, file_path, {
         file: module_name,
         expose: module_name
     }, done);
