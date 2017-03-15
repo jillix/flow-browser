@@ -6,7 +6,7 @@ const cache = {};
 const Readable = require('stream').Readable;
 const RE_method_path = /^<([^\/]+)\/([^#]+)(?:#([^\?]+))?\?(.*)>$/;
 const modules = {};
- 
+
 function AStream (array) {
 
     // source
