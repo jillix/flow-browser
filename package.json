@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "description": "Bundle npm modules of a flow app.",
   "main": "index.js",
-  "browser": "client.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -24,11 +23,8 @@
   },
   "homepage": "https://github.com/jillix/flow-browser#readme",
   "dependencies": {
-    "babel-preset-es2015": "^6.16.0",
-    "babelify": "^7.3.0",
-    "browserify": "^13.1.0",
-    "browserify-replace": "^0.9.0",
     "flow": "github:jillix/flow",
-    "uglifyify": "^3.0.3"
+    "libobject": "github:jillix/libobject",
+    "lru-cache": "^4.0.2"
   }
 }

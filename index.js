@@ -1,74 +1,67 @@
 'use strict'
 
-const fs = require('fs');
-const exec = require('child_process').exec;
-const bundler = require('./lib/browserify');
-const module_name = 'flow-browser';
-const replace_from = /FLOW_ENV/;
+const Flow = require('flow');
+const LRU = require("lru-cache");
+const modules = {};
 
-exports.client = function (scope, inst, args, data, next) {
+function requireFn (name, callback) {
+    let fn = require(name);
 
-    fs.access(args.target, err => {
+    if (typeof fn !== 'function') {
+        return callback(new Error('Flow-browser.fn: "' + exports + '" in module "' + module + '" is not a function.'));
+    }
 
-        if (!err) {
-            data.file = args.target;
-            return next(null, data);
+    callback(null, fn);
+}
+
+// Browser flow adapter
+//
+// args example =>
+//
+// sequenceId = 'someSequenceName'
+// env = {
+//     sequence: '/sequence/',
+//     fn: '/fn/'
+// }
+// options = {
+//
+// };
+module.exports = (sequenceId, env, options) => {
+
+    if (!sequenceId) {
+        return console.error('Start sequence missing. Example: flow sequenceId');
+    }
+
+    const event = Flow({
+        cache: LRU({max: 500}),
+        seq: (sequenceId, role, callback) => {
+            fetch(env.sequence + sequenceId).then(response => {
+
+                if (!response.ok) {
+                    return callback(response.statusText);
+                }
+
+                return response.json();
+
+            }).then(sequence => callback(null, sequence)).catch(callback);
+        },
+        fn: (fn, role, callback) => {
+
+            const node = document.createElement('script');
+            node.onload = () => {
+                modules[fn] = 1;
+                node.remove();
+                requireFn(fn, callback);
+            };
+
+            node.src = env.fn + fn;
+            document.head.appendChild(node);
         }
+    })({
+        sequence: sequenceId
+    });
 
-        const replace_to = scope.env.browser ? JSON.stringify(scope.env.browser) : '{}';
-        const replace_start = '';
-
-        bundler(scope.env.production, args.target, {
-            file: module_name,
-            expose: module_name,
-            replace: [{from: replace_from, to: replace_to}]
-        }, (err, module) => {
-            data.file = module;
-            next(err, data);
-        });
+    event.on('error', error => {
+        console.error(error);
     });
 };
-
-exports.bundle = function (scope, inst, args, data, next) {
-
-    const module_name = data.module.slice(0, -3);
-    const file_path = args.target + '/' + module_name + '.js';
-
-    fs.access(file_path, err => {
-
-        if (!err) {
-            data.file = file_path;
-            return next(null, data);
-        }
-
-        const repo = data.owner + '/' + module_name;
-        const done  = (err, module) => {
-            data.file = file_path;
-            next(err, data); 
-        };
-
-        fs.access(process.cwd() + '/node_modules/' + module_name, (err) => {
-
-            if (err) {
-                 return exec('npm i --prefix ' + process.cwd() + ' ' + repo, err => {
-
-                    if (err) {
-                        return next(err);
-                    }
-
-                    bundle(scope.env.production, file_path, module_name, done);
-                });
-            }
-
-            bundle(scope.env.production, file_path, module_name, done);
-        });
-
-    });
-}; 
-
-function bundle (production, file_path, module_name, done) {
-    bundler(production, file_path, {
-        file: module_name,
-        expose: module_name
-    }, done);
-}
