@@ -1,30 +1,28 @@
-'use strict'
+"use strict"
 
-const Flow = require('flow');
-const LRU = require("lru-cache");
-const modules = {};
+const Flow = require("flow");
+const cache = {};
 
-// Browser flow adapter
-//
-// args example =>
-//
-// sequenceId = 'someSequenceName'
-// env = {
-//     sequence: '/sequence/',
-//     fn: '/fn/'
-// }
-// options = {
-//
-// };
-module.exports = (sequenceId, env, options) => {
+module.exports = (sequenceId, env) => {
 
     if (!sequenceId) {
-        return console.error('Start sequence missing. Example: flow sequenceId');
+        return console.error("Start sequence missing. Example: flow sequenceId");
     }
 
     const event = Flow({
-        cache: LRU({max: 500}),
+        cache: {
+            get: (id) => {
+                return cache[id];
+            },
+            set: (id, data) => {
+                return cache[id] = data;
+            },
+            del: (id) => {
+                delete cache[id];
+            }
+        },
         seq: (sequenceId, role) => {
+            // TODO here we could load a sequence from the safenetwork
             return fetch(env.sequence + sequenceId).then(response => {
 
                 if (!response.ok) {
@@ -34,20 +32,21 @@ module.exports = (sequenceId, env, options) => {
                 return response.json();
             });
         },
-        fn: (fn, role) => {
-            return new Promsise((resolve, reject) => {
-                const node = document.createElement('script');
+        fn: (fn_iri, role) => {
+            return new Promise((resolve, reject) => {
+                const node = document.createElement("script");
                 node.onload = () => {
-                    modules[fn] = 1;
+                    cache[fn_iri] = 1;
                     node.remove();
-                    let fn = require(name);
-                    if (typeof fn !== 'function') {
-                        return reject(new Error('Flow-browser.fn: "' + exports + '" in module "' + module + '" is not a function.'));
+                    fn_iri = require(fn_iri);
+                    if (typeof fn_iri !== "function") {
+                        delete cache[fn_iri];
+                        return reject(new Error("Flow-browser.fn: \"" + exports + "\" in module \"" + module + "\" is not a function."));
                     }
-                    resolve(fn);
+                    resolve(fn_iri);
                 };
 
-                node.src = env.fn + fn;
+                node.src = env.fn + fn_iri;
                 document.head.appendChild(node);
             });
         }
@@ -55,7 +54,7 @@ module.exports = (sequenceId, env, options) => {
         sequence: sequenceId
     });
 
-    event.on('error', error => {
+    event.on("error", error => {
         console.error(error);
     });
 };
