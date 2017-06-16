@@ -1,13 +1,13 @@
 const cache = {};
 Flow({
-    get: (id) => {
-        return cache[id];
+    set: (key, val) => {
+        return cache[key] = val;
     },
-    set: (id, data) => {
-        return cache[id] = data;
+    get: (key) => {
+        return cache[key];
     },
-    del: (id) => {
-        delete cache[id];
+    del: (key) => {
+        delete cache[key];
     },
     seq: (sequenceId, role) => {
         // TODO here we could load a sequence from the safenetwork
@@ -26,18 +26,18 @@ Flow({
             const node = document.createElement("script");
             node.onload = () => {
                 node.remove();
-                resolve();
+                resolve(fn_iri);
             };
             node.src = "/.fn/" + fn_iri;
             document.head.appendChild(node);
         });
     },
-    dep: (dependency) => {
+    dep: (name, dependency) => {
         return new Promise((resolve, reject) => {
             const node = document.createElement("script");
             node.onload = () => {
                 node.remove();
-                resolve();
+                resolve(name);
             };
             node.src = "/.dp/" + dependency;
             document.head.appendChild(node);
