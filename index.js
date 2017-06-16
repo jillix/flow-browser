@@ -42,6 +42,5 @@ Flow({
             node.src = "/.dp/" + dependency;
             document.head.appendChild(node);
         });
-    },
-    err: console.error;
+    }
 });
