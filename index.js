@@ -1,67 +1,40 @@
-'use strict'
+import Flow from "./flow.js";
 
-const Flow = require('flow');
-const LRU = require("lru-cache");
-const modules = {};
-
-function requireFn (name, callback) {
-    let fn = require(name);
-
-    if (typeof fn !== 'function') {
-        return callback(new Error('Flow-browser.fn: "' + exports + '" in module "' + module + '" is not a function.'));
-    }
-
-    callback(null, fn);
-}
-
-// Browser flow adapter
-//
-// args example =>
-//
-// sequenceId = 'someSequenceName'
-// env = {
-//     sequence: '/sequence/',
-//     fn: '/fn/'
-// }
-// options = {
-//
-// };
-module.exports = (sequenceId, env, options) => {
-
-    if (!sequenceId) {
-        return console.error('Start sequence missing. Example: flow sequenceId');
-    }
-
-    const event = Flow({
-        cache: LRU({max: 500}),
-        seq: (sequenceId, role, callback) => {
-            fetch(env.sequence + sequenceId).then(response => {
-
-                if (!response.ok) {
-                    return callback(response.statusText);
-                }
-
-                return response.json();
-
-            }).then(sequence => callback(null, sequence)).catch(callback);
+export default (sequences, handlers, dependencies, initSequence) => {
+    const cache = {};
+    return Flow({
+        set: (key, val) => {
+            return cache[key] = val;
         },
-        fn: (fn, role, callback) => {
-
-            const node = document.createElement('script');
+        get: (key) => {
+            return cache[key];
+        },
+        del: (key) => {
+            delete cache[key];
+        },
+        seq: (sequenceId, role) => {
+            return fetch(sequences + "/" + sequenceId + ".json").then((response) => {
+                return response.ok ? response.json() : Promise.reject(response.statusText);
+            });
+        },
+        fnc: (fn_iri, role) => {
+            return fetch(handlers + "/" + fn_iri + ".js").then((response) => {
+                return response.text().then((script) => {
+                    return new Function("Adapter", "flow", script);
+                });
+            });
+        },
+        dep: (name, dependency) => {
+            return new Promise((resolve, reject) => {
+            const node = document.createElement("script");
             node.onload = () => {
-                modules[fn] = 1;
                 node.remove();
-                requireFn(fn, callback);
+                resolve(name);
             };
-
-            node.src = env.fn + fn;
+            node.src = dependencies + "/" + name + ".js";
+            node.type = "text/javascript";
             document.head.appendChild(node);
+        });
         }
-    })({
-        sequence: sequenceId
-    });
-
-    event.on('error', error => {
-        console.error(error);
-    });
-};
+    })(initSequence);
+}
