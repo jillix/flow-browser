@@ -12,9 +12,7 @@
   },
   "keywords": [
     "flow",
-    "browser",
-    "bundle",
-    "pack"
+    "flow client"
   ],
   "author": "Adrian Ottiker <adrian@ottiker.com>",
   "license": "MIT",
@@ -23,8 +21,6 @@
   },
   "homepage": "https://github.com/jillix/flow-browser#readme",
   "dependencies": {
-    "flow": "github:jillix/flow",
-    "libobject": "github:jillix/libobject",
-    "lru-cache": "^4.0.2"
+    "flow": "github:jillix/flow"
   }
 }
