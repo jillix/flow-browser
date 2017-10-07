@@ -1,2 +1,2 @@
-# flow-pack
-Bundle npm modules of a flow app.
+# flow-browser
+Flow for browsers
