@@ -1,6 +1,6 @@
 import Flow from "./flow.js";
 
-export default (sequences, handlers, dependencies, initSequence) => {
+export default (sequences, handlers, dependencies) => {
     const cache = {};
     return Flow({
         set: (key, val) => {
@@ -36,5 +36,5 @@ export default (sequences, handlers, dependencies, initSequence) => {
             document.head.appendChild(node);
         });
         }
-    })(initSequence);
+    });
 }
